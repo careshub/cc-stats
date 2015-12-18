@@ -202,6 +202,7 @@ class CC_Stats_Admin {
 			'member-favorites',
 			'forum-subscriptions',
 			'forum-topic-subscriptions',
+			'forum-reply-relationships'
 			);
 
 		// Has anything been requested? Is this our screen?
@@ -232,6 +233,9 @@ class CC_Stats_Admin {
 				break;
 			case 'forum-topic-subscriptions':
 				$this->run_forum_topic_subscriptions_csv();
+				break;
+			case 'forum-reply-relationships':
+				$this->run_forum_reply_relationships_csv();
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
@@ -514,6 +518,81 @@ class CC_Stats_Admin {
 		            }
 		        }
 
+		    }
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the forum reply relationships CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_forum_reply_relationships_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-forum-reply-relationships.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array( 'user_id','user_email', 'in_reply_to_user_id', 'in_reply_to_user_email', 'in_topic_by_user_id', 'in_topic_by_user_email', 'in_forum_by_user_id', 'in_forum_by_user_email', 'post_date' );
+		fputcsv( $output, $row );
+
+		$replies = new WP_QUERY( array(
+		    'post_type' => 'reply',
+		    'posts_per_page' => -1,
+		    'cache_results' => false,
+		    'update_post_meta_cache' => false,
+		    'update_post_term_cache' => false,
+
+		    ) );
+
+		if ( ! empty( $replies->posts ) ) {
+		    foreach ( $replies->posts as $item ) {
+		        $poster = get_userdata( $item->post_author );
+		        $row = array( $item->post_author, $poster->user_email );
+
+		        $meta = get_post_meta( $item->ID );
+
+		        if ( ! empty( $meta['_bbp_reply_to'] ) ) {
+		            $reply_auth_id = get_post_field( 'post_author', $meta['_bbp_reply_to'][0] );
+		            $reply_auth = get_userdata( $reply_auth_id );
+		            $row[] = $reply_auth_id;
+		            $row[] = $reply_auth->user_email;
+		        } else {
+		            $row[] = '';
+		            $row[] = '';
+		        }
+
+		        if ( ! empty( $meta['_bbp_topic_id'] ) ) {
+		            $topic_auth_id = get_post_field( 'post_author', $meta['_bbp_topic_id'][0] );
+		            $topic_auth = get_userdata( $topic_auth_id );
+		            $row[] = $topic_auth_id;
+		            $row[] = $topic_auth->user_email;
+		        } else {
+		            $row[] = '';
+		            $row[] = '';
+		        }
+
+		        if ( ! empty( $meta['_bbp_forum_id'] ) ) {
+		            $forum_auth_id = get_post_field( 'post_author', $meta['_bbp_forum_id'][0] );
+		            $forum_auth = get_userdata( $forum_auth_id );
+		            $row[] = $forum_auth_id;
+		            $row[] = $forum_auth->user_email;
+		        } else {
+		            $row[] = '';
+		            $row[] = '';
+		        }
+
+		        $row[] = $item->post_date;
+
+				fputcsv( $output, $row );
 		    }
 		}
 		fclose( $output );

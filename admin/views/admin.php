@@ -85,6 +85,20 @@ $current_user_id = get_current_user_id();
 					), 'cc-stats-' . $current_user_id );
 				?>">Generate a forum topic subscriptions CSV.</a>
 			</li>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+						array(
+							'page' => $plugin_slug,
+							'stat' => 'forum-reply-relationships'
+						),
+						admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a forum reply relationships CSV.</a>
+				<span class="info">Shows member relationships by showing who replied to whom, in which topic and in which forum.</span>
+			</li>
+		</ul>
 	</section>
 
 </div>
