@@ -197,7 +197,12 @@ class CC_Stats_Admin {
 		global $plugin_page;
 
 		// What is the complete list of actions we're checking for?
-		$actions = array( 'hub-csv', 'member-favorites', 'forum-subscriptions' );
+		$actions = array(
+			'hub-csv',
+			'member-favorites',
+			'forum-subscriptions',
+			'forum-topic-subscriptions',
+			);
 
 		// Has anything been requested? Is this our screen?
 		if ( ! isset( $_REQUEST['stat'] ) || $this->plugin_slug != $plugin_page ) {
@@ -224,6 +229,9 @@ class CC_Stats_Admin {
 				break;
 			case 'forum-subscriptions':
 				$this->run_forum_subscriptions_csv();
+				break;
+			case 'forum-topic-subscriptions':
+				$this->run_forum_topic_subscriptions_csv();
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
@@ -435,6 +443,63 @@ class CC_Stats_Admin {
 
 		        $topics = new WP_QUERY( array(
 		            'post_type' => 'forum' ,
+		            'post__in' => $subscriptions,
+		            'cache_results' => false,
+		            'update_post_meta_cache' => false,
+		            'update_post_term_cache' => false,
+		        ) );
+
+		        if ( ! empty( $topics->posts ) ) {
+		            foreach ( $topics->posts as $item ) {
+		                $op = get_userdata( $item->post_author );
+		                $row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
+						fputcsv( $output, $row );
+		            }
+		        }
+
+		    }
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the forum topic subscriptions CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_forum_topic_subscriptions_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-forum-topic-subscriptions.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array( 'user_id', 'user_email', 'subscribed_to_topic_id', 'subscribed_to_topic_title', 'subscribed_to_topic_by_user_id', 'subscribed_to_topic_by_user_email', 'topic_date' );
+		fputcsv( $output, $row );
+
+		// Use a WP_User_Query meta_query to find users who have subscribed to forums.
+		$args = array(
+		    'meta_key'     => 'wp__bbp_subscriptions',
+		    'meta_compare' => 'EXISTS',
+		);
+		$user_query = new WP_User_Query( $args );
+
+		// User Loop
+		if ( ! empty( $user_query->results ) ) {
+		    foreach ( $user_query->results as $user ) {
+		        $subscriptions = bbp_get_user_subscribed_topic_ids( $user->ID );
+		        if ( empty( $subscriptions ) ) {
+		            continue;
+		        }
+
+		        $topics = new WP_QUERY( array(
+		            'post_type' => 'topic',
 		            'post__in' => $subscriptions,
 		            'cache_results' => false,
 		            'update_post_meta_cache' => false,

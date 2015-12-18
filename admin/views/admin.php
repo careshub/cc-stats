@@ -24,44 +24,67 @@ $current_user_id = get_current_user_id();
 
 	<section>
 		<h3>Hub Stats</h3>
-		<a href="<?php
-			// URL needs to have the stat we're requesting and be nonced.
-			echo wp_nonce_url( add_query_arg(
-			    array(
-			        'page' => $plugin_slug,
-			        'stat' => 'hub-csv'
-			    ),
-			    admin_url( 'tools.php' )
-			), 'cc-stats-' . $current_user_id );
-		?>">Generate an overview CSV.</a>
+		<ul>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+					    array(
+					        'page' => $plugin_slug,
+					        'stat' => 'hub-csv'
+					    ),
+					    admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate an overview CSV.</a>
+			</li>
+		</ul>
 	</section>
 
 	<section>
 		<h3>Member Stats</h3>
-		<a href="<?php
-			// URL needs to have the stat we're requesting and be nonced.
-			echo wp_nonce_url( add_query_arg(
-			    array(
-			        'page' => $plugin_slug,
-			        'stat' => 'member-favorites'
-			    ),
-			    admin_url( 'tools.php' )
-			), 'cc-stats-' . $current_user_id );
-		?>">Generate a member favorites CSV.</a>
+		<ul>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+					    array(
+					        'page' => $plugin_slug,
+					        'stat' => 'member-favorites'
+					    ),
+					    admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a member favorites CSV.</a>
+			</li>
+		</ul>
 	</section>
 
 	<section>
 		<h3>Forum Stats</h3>
-		<a href="<?php
-			// URL needs to have the stat we're requesting and be nonced.
-			echo wp_nonce_url( add_query_arg(
-			    array(
-			        'page' => $plugin_slug,
-			        'stat' => 'forum-subscriptions'
-			    ),
-			    admin_url( 'tools.php' )
-			), 'cc-stats-' . $current_user_id );
-		?>">Generate a forum subscriptions CSV.</a>
+		<ul>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+					    array(
+					        'page' => $plugin_slug,
+					        'stat' => 'forum-subscriptions'
+					    ),
+					    admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a forum subscriptions CSV.</a>
+			</li>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+					    array(
+					        'page' => $plugin_slug,
+					        'stat' => 'forum-topic-subscriptions'
+					    ),
+					    admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a forum topic subscriptions CSV.</a>
+			</li>
 	</section>
 
 </div>
