@@ -197,7 +197,7 @@ class CC_Stats_Admin {
 		global $plugin_page;
 
 		// What is the complete list of actions we're checking for?
-		$actions = array( 'hub-csv' );
+		$actions = array( 'hub-csv', 'member-favorites' );
 
 		// Has anything been requested? Is this our screen?
 		if ( ! isset( $_REQUEST['stat'] ) || $this->plugin_slug != $plugin_page ) {
@@ -219,7 +219,9 @@ class CC_Stats_Admin {
 			case 'hub-csv':
 				$this->run_stat_hub_csv();
 				break;
-
+			case 'member-favorites':
+				$this->run_member_favorites_csv();
+				break;
 			default:
 				// Do nothing if we don't know what we're doing.
 				break;
@@ -235,18 +237,15 @@ class CC_Stats_Admin {
 		global $wpdb;
 		$bp = buddypress();
 
-		// output headers so that the file is downloaded rather than displayed
+		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
 		header('Content-Disposition: attachment; filename=cc-hubs-overview.csv');
 
-		// create a file pointer connected to the output stream
+		// Create a file pointer connected to the output stream.
 		$output = fopen('php://output', 'w');
-		// $output = fopen('cc-hubs-overview.csv', 'a');
 
-
-		// Write a header row
+		// Write a header row.
 		$row = array( 'Hub ID', 'Name', 'Slug', 'Status', 'Date Created', 'Parent Hub ID', 'Total Members', 'Creator ID', 'Creator Email', 'Forum', 'BP Docs', 'CC Hub Home Page', 'CC Hub Pages', 'CC Hub Narratives', 'Custom Plugins' );
-		// Write the row.
 		fputcsv( $output, $row );
 
 		// Groups Loop
@@ -338,6 +337,59 @@ class CC_Stats_Admin {
 				// Write the row.
 				fputcsv( $output, $row );
 			}
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the member favorites CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_member_favorites_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-member-favorites.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array( 'user_id', 'user_email', 'favorited_post_by_user_id', 'favorited_post_by_user_email', 'date_recorded' );
+		// Write the row.
+		fputcsv( $output, $row );
+
+		// Use a WP_Query meta_query to find users who have favorited activities.
+		$args = array(
+		    'meta_key'     => 'bp_favorite_activities',
+		    'meta_compare' => 'EXISTS',
+		    'orderby'      => 'ID'
+		);
+		$user_query = new WP_User_Query( $args );
+
+		// User Loop
+		if ( ! empty( $user_query->results ) ) {
+		    foreach ( $user_query->results as $user ) {
+		        $favorites = bp_activity_get_user_favorites( $user->ID );
+		        // Passing an empty array to activity_ids gets them all. Abort!
+		        if ( empty( $favorites ) ) {
+		            continue;
+		        }
+		        // Next, get all of these activity items.
+		        $items = bp_activity_get_specific( array(
+		            'activity_ids'      => $favorites,
+		            'update_meta_cache' => false,
+		        ) );
+		        foreach ( $items['activities'] as $item ) {
+		            $op = get_userdata( $item->user_id );
+		            $row = array( $user->ID, $user->user_email, $item->user_id, $op->user_email, $item->date_recorded );
+					fputcsv( $output, $row );
+		        }
+		    }
 		}
 		fclose( $output );
 		exit();
