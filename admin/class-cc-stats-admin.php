@@ -202,7 +202,8 @@ class CC_Stats_Admin {
 			'member-favorites',
 			'forum-subscriptions',
 			'forum-topic-subscriptions',
-			'forum-reply-relationships'
+			'forum-reply-relationships',
+			'forum-topic-favorites'
 			);
 
 		// Has anything been requested? Is this our screen?
@@ -236,6 +237,9 @@ class CC_Stats_Admin {
 				break;
 			case 'forum-reply-relationships':
 				$this->run_forum_reply_relationships_csv();
+				break;
+			case 'forum-topic-favorites':
+				$this->run_forum_topic_favorites_csv();
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
@@ -363,8 +367,6 @@ class CC_Stats_Admin {
 	 * @since    1.0.0
 	 */
 	public function run_member_favorites_csv() {
-		global $wpdb;
-		$bp = buddypress();
 
 		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
@@ -416,8 +418,6 @@ class CC_Stats_Admin {
 	 * @since    1.0.0
 	 */
 	public function run_forum_subscriptions_csv() {
-		global $wpdb;
-		$bp = buddypress();
 
 		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
@@ -473,8 +473,6 @@ class CC_Stats_Admin {
 	 * @since    1.0.0
 	 */
 	public function run_forum_topic_subscriptions_csv() {
-		global $wpdb;
-		$bp = buddypress();
 
 		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
@@ -530,8 +528,6 @@ class CC_Stats_Admin {
 	 * @since    1.0.0
 	 */
 	public function run_forum_reply_relationships_csv() {
-		global $wpdb;
-		$bp = buddypress();
 
 		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
@@ -550,7 +546,6 @@ class CC_Stats_Admin {
 		    'cache_results' => false,
 		    'update_post_meta_cache' => false,
 		    'update_post_term_cache' => false,
-
 		    ) );
 
 		if ( ! empty( $replies->posts ) ) {
@@ -593,6 +588,61 @@ class CC_Stats_Admin {
 		        $row[] = $item->post_date;
 
 				fputcsv( $output, $row );
+		    }
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the forum topic favorites CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_forum_topic_favorites_csv() {
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-forum-topic-favorites.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array( 'user_id', 'user_email', 'favorited_topic_id', 'favorited_topic_title', 'favorited_topic_by_user_id', 'favorited_topic_by_user_email', 'topic_date' );
+		fputcsv( $output, $row );
+
+		// Use a WP_User_Query meta_query to find users who have subscribed to forums.
+		$args = array(
+		    'meta_key'     => 'wp__bbp_favorites',
+		    'meta_compare' => 'EXISTS',
+		);
+		$user_query = new WP_User_Query( $args );
+
+		// User Loop
+		if ( ! empty( $user_query->results ) ) {
+		    foreach ( $user_query->results as $user ) {
+		        $favorites = bbp_get_user_favorites_topic_ids( $user->ID );
+		        if ( empty( $favorites ) ) {
+		            continue;
+		        }
+
+		        $topics = new WP_QUERY( array(
+		            'post_type' => 'topic',
+		            'post__in' => $favorites,
+		            'cache_results' => false,
+		            'update_post_meta_cache' => false,
+		            'update_post_term_cache' => false,
+		        ) );
+
+		        if ( ! empty( $topics->posts ) ) {
+		            foreach ( $topics->posts as $item ) {
+		                $op = get_userdata( $item->post_author );
+		                $row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
+						fputcsv( $output, $row );
+		            }
+		        }
+
 		    }
 		}
 		fclose( $output );
