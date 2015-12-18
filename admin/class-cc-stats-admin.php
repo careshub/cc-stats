@@ -382,31 +382,31 @@ class CC_Stats_Admin {
 
 		// Use a WP_User_Query meta_query to find users who have favorited activities.
 		$args = array(
-		    'meta_key'     => 'bp_favorite_activities',
-		    'meta_compare' => 'EXISTS',
-		    'orderby'      => 'ID'
+			'meta_key'     => 'bp_favorite_activities',
+			'meta_compare' => 'EXISTS',
+			'orderby'      => 'ID'
 		);
 		$user_query = new WP_User_Query( $args );
 
 		// User Loop
 		if ( ! empty( $user_query->results ) ) {
-		    foreach ( $user_query->results as $user ) {
-		        $favorites = bp_activity_get_user_favorites( $user->ID );
-		        // Passing an empty array to activity_ids gets them all. Abort!
-		        if ( empty( $favorites ) ) {
-		            continue;
-		        }
-		        // Next, get all of these activity items.
-		        $items = bp_activity_get_specific( array(
-		            'activity_ids'      => $favorites,
-		            'update_meta_cache' => false,
-		        ) );
-		        foreach ( $items['activities'] as $item ) {
-		            $op = get_userdata( $item->user_id );
-		            $row = array( $user->ID, $user->user_email, $item->user_id, $op->user_email, $item->date_recorded );
+			foreach ( $user_query->results as $user ) {
+				$favorites = bp_activity_get_user_favorites( $user->ID );
+				// Passing an empty array to activity_ids gets them all. Abort!
+				if ( empty( $favorites ) ) {
+					continue;
+				}
+				// Next, get all of these activity items.
+				$items = bp_activity_get_specific( array(
+					'activity_ids'      => $favorites,
+					'update_meta_cache' => false,
+				) );
+				foreach ( $items['activities'] as $item ) {
+					$op = get_userdata( $item->user_id );
+					$row = array( $user->ID, $user->user_email, $item->user_id, $op->user_email, $item->date_recorded );
 					fputcsv( $output, $row );
-		        }
-		    }
+				}
+			}
 		}
 		fclose( $output );
 		exit();
@@ -432,36 +432,36 @@ class CC_Stats_Admin {
 
 		// Use a WP_User_Query meta_query to find users who have subscribed to forums.
 		$args = array(
-		    'meta_key'     => 'wp__bbp_forum_subscriptions',
-		    'meta_compare' => 'EXISTS',
+			'meta_key'     => 'wp__bbp_forum_subscriptions',
+			'meta_compare' => 'EXISTS',
 		);
 		$user_query = new WP_User_Query( $args );
 
 		// User Loop
 		if ( ! empty( $user_query->results ) ) {
-		    foreach ( $user_query->results as $user ) {
-		        $subscriptions = bbp_get_user_subscribed_forum_ids( $user->ID );
-		        if ( empty( $subscriptions ) ) {
-		            continue;
-		        }
+			foreach ( $user_query->results as $user ) {
+				$subscriptions = bbp_get_user_subscribed_forum_ids( $user->ID );
+				if ( empty( $subscriptions ) ) {
+					continue;
+				}
 
-		        $topics = new WP_QUERY( array(
-		            'post_type' => 'forum' ,
-		            'post__in' => $subscriptions,
-		            'cache_results' => false,
-		            'update_post_meta_cache' => false,
-		            'update_post_term_cache' => false,
-		        ) );
+				$topics = new WP_QUERY( array(
+					'post_type' => 'forum' ,
+					'post__in' => $subscriptions,
+					'cache_results' => false,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				) );
 
-		        if ( ! empty( $topics->posts ) ) {
-		            foreach ( $topics->posts as $item ) {
-		                $op = get_userdata( $item->post_author );
-		                $row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
+				if ( ! empty( $topics->posts ) ) {
+					foreach ( $topics->posts as $item ) {
+						$op = get_userdata( $item->post_author );
+						$row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
 						fputcsv( $output, $row );
-		            }
-		        }
+					}
+				}
 
-		    }
+			}
 		}
 		fclose( $output );
 		exit();
@@ -487,36 +487,36 @@ class CC_Stats_Admin {
 
 		// Use a WP_User_Query meta_query to find users who have subscribed to forums.
 		$args = array(
-		    'meta_key'     => 'wp__bbp_subscriptions',
-		    'meta_compare' => 'EXISTS',
+			'meta_key'     => 'wp__bbp_subscriptions',
+			'meta_compare' => 'EXISTS',
 		);
 		$user_query = new WP_User_Query( $args );
 
 		// User Loop
 		if ( ! empty( $user_query->results ) ) {
-		    foreach ( $user_query->results as $user ) {
-		        $subscriptions = bbp_get_user_subscribed_topic_ids( $user->ID );
-		        if ( empty( $subscriptions ) ) {
-		            continue;
-		        }
+			foreach ( $user_query->results as $user ) {
+				$subscriptions = bbp_get_user_subscribed_topic_ids( $user->ID );
+				if ( empty( $subscriptions ) ) {
+					continue;
+				}
 
-		        $topics = new WP_QUERY( array(
-		            'post_type' => 'topic',
-		            'post__in' => $subscriptions,
-		            'cache_results' => false,
-		            'update_post_meta_cache' => false,
-		            'update_post_term_cache' => false,
-		        ) );
+				$topics = new WP_QUERY( array(
+					'post_type' => 'topic',
+					'post__in' => $subscriptions,
+					'cache_results' => false,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				) );
 
-		        if ( ! empty( $topics->posts ) ) {
-		            foreach ( $topics->posts as $item ) {
-		                $op = get_userdata( $item->post_author );
-		                $row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
+				if ( ! empty( $topics->posts ) ) {
+					foreach ( $topics->posts as $item ) {
+						$op = get_userdata( $item->post_author );
+						$row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
 						fputcsv( $output, $row );
-		            }
-		        }
+					}
+				}
 
-		    }
+			}
 		}
 		fclose( $output );
 		exit();
@@ -541,54 +541,54 @@ class CC_Stats_Admin {
 		fputcsv( $output, $row );
 
 		$replies = new WP_QUERY( array(
-		    'post_type' => 'reply',
-		    'posts_per_page' => -1,
-		    'cache_results' => false,
-		    'update_post_meta_cache' => false,
-		    'update_post_term_cache' => false,
-		    ) );
+			'post_type' => 'reply',
+			'posts_per_page' => -1,
+			'cache_results' => false,
+			'update_post_meta_cache' => false,
+			'update_post_term_cache' => false,
+			) );
 
 		if ( ! empty( $replies->posts ) ) {
-		    foreach ( $replies->posts as $item ) {
-		        $poster = get_userdata( $item->post_author );
-		        $row = array( $item->post_author, $poster->user_email );
+			foreach ( $replies->posts as $item ) {
+				$poster = get_userdata( $item->post_author );
+				$row = array( $item->post_author, $poster->user_email );
 
-		        $meta = get_post_meta( $item->ID );
+				$meta = get_post_meta( $item->ID );
 
-		        if ( ! empty( $meta['_bbp_reply_to'] ) ) {
-		            $reply_auth_id = get_post_field( 'post_author', $meta['_bbp_reply_to'][0] );
-		            $reply_auth = get_userdata( $reply_auth_id );
-		            $row[] = $reply_auth_id;
-		            $row[] = $reply_auth->user_email;
-		        } else {
-		            $row[] = '';
-		            $row[] = '';
-		        }
+				if ( ! empty( $meta['_bbp_reply_to'] ) ) {
+					$reply_auth_id = get_post_field( 'post_author', $meta['_bbp_reply_to'][0] );
+					$reply_auth = get_userdata( $reply_auth_id );
+					$row[] = $reply_auth_id;
+					$row[] = $reply_auth->user_email;
+				} else {
+					$row[] = '';
+					$row[] = '';
+				}
 
-		        if ( ! empty( $meta['_bbp_topic_id'] ) ) {
-		            $topic_auth_id = get_post_field( 'post_author', $meta['_bbp_topic_id'][0] );
-		            $topic_auth = get_userdata( $topic_auth_id );
-		            $row[] = $topic_auth_id;
-		            $row[] = $topic_auth->user_email;
-		        } else {
-		            $row[] = '';
-		            $row[] = '';
-		        }
+				if ( ! empty( $meta['_bbp_topic_id'] ) ) {
+					$topic_auth_id = get_post_field( 'post_author', $meta['_bbp_topic_id'][0] );
+					$topic_auth = get_userdata( $topic_auth_id );
+					$row[] = $topic_auth_id;
+					$row[] = $topic_auth->user_email;
+				} else {
+					$row[] = '';
+					$row[] = '';
+				}
 
-		        if ( ! empty( $meta['_bbp_forum_id'] ) ) {
-		            $forum_auth_id = get_post_field( 'post_author', $meta['_bbp_forum_id'][0] );
-		            $forum_auth = get_userdata( $forum_auth_id );
-		            $row[] = $forum_auth_id;
-		            $row[] = $forum_auth->user_email;
-		        } else {
-		            $row[] = '';
-		            $row[] = '';
-		        }
+				if ( ! empty( $meta['_bbp_forum_id'] ) ) {
+					$forum_auth_id = get_post_field( 'post_author', $meta['_bbp_forum_id'][0] );
+					$forum_auth = get_userdata( $forum_auth_id );
+					$row[] = $forum_auth_id;
+					$row[] = $forum_auth->user_email;
+				} else {
+					$row[] = '';
+					$row[] = '';
+				}
 
-		        $row[] = $item->post_date;
+				$row[] = $item->post_date;
 
 				fputcsv( $output, $row );
-		    }
+			}
 		}
 		fclose( $output );
 		exit();
@@ -614,36 +614,36 @@ class CC_Stats_Admin {
 
 		// Use a WP_User_Query meta_query to find users who have subscribed to forums.
 		$args = array(
-		    'meta_key'     => 'wp__bbp_favorites',
-		    'meta_compare' => 'EXISTS',
+			'meta_key'     => 'wp__bbp_favorites',
+			'meta_compare' => 'EXISTS',
 		);
 		$user_query = new WP_User_Query( $args );
 
 		// User Loop
 		if ( ! empty( $user_query->results ) ) {
-		    foreach ( $user_query->results as $user ) {
-		        $favorites = bbp_get_user_favorites_topic_ids( $user->ID );
-		        if ( empty( $favorites ) ) {
-		            continue;
-		        }
+			foreach ( $user_query->results as $user ) {
+				$favorites = bbp_get_user_favorites_topic_ids( $user->ID );
+				if ( empty( $favorites ) ) {
+					continue;
+				}
 
-		        $topics = new WP_QUERY( array(
-		            'post_type' => 'topic',
-		            'post__in' => $favorites,
-		            'cache_results' => false,
-		            'update_post_meta_cache' => false,
-		            'update_post_term_cache' => false,
-		        ) );
+				$topics = new WP_QUERY( array(
+					'post_type' => 'topic',
+					'post__in' => $favorites,
+					'cache_results' => false,
+					'update_post_meta_cache' => false,
+					'update_post_term_cache' => false,
+				) );
 
-		        if ( ! empty( $topics->posts ) ) {
-		            foreach ( $topics->posts as $item ) {
-		                $op = get_userdata( $item->post_author );
-		                $row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
+				if ( ! empty( $topics->posts ) ) {
+					foreach ( $topics->posts as $item ) {
+						$op = get_userdata( $item->post_author );
+						$row = array( $user->ID, $user->user_email, $item->ID, $item->post_title, $item->post_author, $op->user_email, $item->post_date );
 						fputcsv( $output, $row );
-		            }
-		        }
+					}
+				}
 
-		    }
+			}
 		}
 		fclose( $output );
 		exit();
