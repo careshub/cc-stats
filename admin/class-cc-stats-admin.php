@@ -201,6 +201,7 @@ class CC_Stats_Admin {
 			'hub-csv',
 			'member-favorites',
 			'member-friend-connections',
+			'member-replied-to-activity-connections',
 			'forum-subscriptions',
 			'forum-topic-subscriptions',
 			'forum-reply-relationships',
