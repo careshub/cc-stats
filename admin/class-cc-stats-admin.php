@@ -200,6 +200,7 @@ class CC_Stats_Admin {
 		$actions = array(
 			'hub-csv',
 			'member-favorites',
+			'member-friend-connections',
 			'forum-subscriptions',
 			'forum-topic-subscriptions',
 			'forum-reply-relationships',
@@ -228,6 +229,9 @@ class CC_Stats_Admin {
 				break;
 			case 'member-favorites':
 				$this->run_member_favorites_csv();
+				break;
+			case 'member-friend-connections':
+				$this->run_member_friend_connections_csv();
 				break;
 			case 'forum-subscriptions':
 				$this->run_forum_subscriptions_csv();
@@ -413,6 +417,23 @@ class CC_Stats_Admin {
 	}
 
 	/**
+	 * Create the member friend connections CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_member_friend_connections_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-member-friend-connections.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array( 'initiator_user_id', 'initiator_username', 'initiator_email', 'friend_user_id', 'friend_username', 'friend_email', 'date_created' );
 	 * Create the forum subscriptions CSV when requested.
 	 *
 	 * @since    1.0.0

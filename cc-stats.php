@@ -8,7 +8,7 @@
  *
  * @wordpress-plugin
  * Plugin Name:       CC Stats
- * Description:       Allows groups to contribute blog posts
+ * Description:       Allows site admins to generate reports about hubs and members.
  * Version:           1.0.0
  * Author:            CARES staff
  * Text Domain:       plugin-name-locale
