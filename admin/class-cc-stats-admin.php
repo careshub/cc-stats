@@ -434,6 +434,41 @@ class CC_Stats_Admin {
 
 		// Write a header row.
 		$row = array( 'initiator_user_id', 'initiator_username', 'initiator_email', 'friend_user_id', 'friend_username', 'friend_email', 'date_created' );
+		fputcsv( $output, $row );
+
+		$friends = $wpdb->get_results( "SELECT
+				 f.initiator_user_id,
+				 u1.user_login as initiator_username,
+				 u1.user_email as initiator_email,
+				 f.friend_user_id,
+				 u2.user_login as friend_username,
+				 u2.user_email as friend_email,
+				 f.date_created
+			FROM
+				 {$bp->friends->table_name} f
+				 LEFT JOIN $wpdb->users u1 ON u1.ID = f.initiator_user_id
+				 LEFT JOIN $wpdb->users u2 ON u2.ID = f.friend_user_id
+			WHERE f.is_confirmed = 1" );
+
+		if ( ! empty( $friends ) ) {
+			foreach ( $friends as $friend ) {
+				$row = array(
+					$friend->initiator_user_id,
+					$friend->initiator_username,
+					$friend->initiator_email,
+					$friend->friend_user_id,
+					$friend->friend_username,
+					$friend->friend_email,
+					$friend->date_created
+				);
+				fputcsv( $output, $row );
+			}
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
 	 * Create the forum subscriptions CSV when requested.
 	 *
 	 * @since    1.0.0
