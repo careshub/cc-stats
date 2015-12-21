@@ -233,6 +233,9 @@ class CC_Stats_Admin {
 			case 'member-friend-connections':
 				$this->run_member_friend_connections_csv();
 				break;
+			case 'member-replied-to-activity-connections':
+				$this->run_member_replied_to_activity_connections_csv();
+				break;
 			case 'forum-subscriptions':
 				$this->run_forum_subscriptions_csv();
 				break;
@@ -460,6 +463,69 @@ class CC_Stats_Admin {
 					$friend->friend_username,
 					$friend->friend_email,
 					$friend->date_created
+				);
+				fputcsv( $output, $row );
+			}
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the replied-to-activity-update connections CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_member_replied_to_activity_connections_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-member-replied-to-activity-connections.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array(
+			'user_id',
+			'user_email',
+			'reply_to_thread_started_by_user_id',
+			'reply_to_thread_started_by_user_email',
+			'reply_to_comment_by_user_id',
+			'reply_to_comment_by_user_email',
+			'date_recorded'
+			);
+		fputcsv( $output, $row );
+
+		$replies = $wpdb->get_results( "SELECT
+			a.user_id,
+			u.user_email,
+			t.user_id as reply_to_thread_started_by_user_id,
+			ut.user_email as reply_to_thread_started_by_user_email,
+			r.user_id as reply_to_comment_by_user_id,
+			ur.user_email as reply_to_comment_by_user_email,
+			a.date_recorded
+		FROM
+			{$bp->activity->table_name} a
+			LEFT JOIN {$bp->activity->table_name} t ON a.item_id = t.id
+			LEFT JOIN {$bp->activity->table_name} r ON a.secondary_item_id = r.id
+			LEFT JOIN $wpdb->users u ON a.user_id = u.ID
+			LEFT JOIN $wpdb->users ut ON t.user_id = ut.ID
+			LEFT JOIN $wpdb->users ur ON r.user_id = ur.ID
+		WHERE a.type = 'activity_comment'" );
+
+		if ( ! empty( $replies ) ) {
+			foreach ( $replies as $reply ) {
+				$row = array(
+					$reply->user_id,
+					$reply->user_email,
+					$reply->reply_to_thread_started_by_user_id,
+					$reply->reply_to_thread_started_by_user_email,
+					$reply->reply_to_comment_by_user_id,
+					$reply->reply_to_comment_by_user_email,
+					$reply->date_recorded
 				);
 				fputcsv( $output, $row );
 			}
