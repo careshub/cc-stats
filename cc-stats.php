@@ -9,7 +9,7 @@
  * @wordpress-plugin
  * Plugin Name:       CC Stats
  * Description:       Allows site admins to generate reports about hubs and members.
- * Version:           1.0.0
+ * Version:           1.1.0
  * Author:            CARES staff
  * Text Domain:       plugin-name-locale
  * License:           GPL-2.0+

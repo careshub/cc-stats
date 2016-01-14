@@ -137,4 +137,22 @@ $current_user_id = get_current_user_id();
 		</ul>
 	</section>
 
+	<section>
+		<h3>Salud America Stats</h3>
+		<ul>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+						array(
+							'page' => $plugin_slug,
+							'stat' => 'sa-hub-members'
+						),
+						admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a Salud America hub member CSV.</a>
+			</li>
+		</ul>
+	</section>
+
 </div>

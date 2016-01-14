@@ -205,7 +205,8 @@ class CC_Stats_Admin {
 			'forum-subscriptions',
 			'forum-topic-subscriptions',
 			'forum-reply-relationships',
-			'forum-topic-favorites'
+			'forum-topic-favorites',
+			'sa-hub-members'
 			);
 
 		// Has anything been requested? Is this our screen?
@@ -248,6 +249,9 @@ class CC_Stats_Admin {
 				break;
 			case 'forum-topic-favorites':
 				$this->run_forum_topic_favorites_csv();
+				break;
+			case 'sa-hub-members':
+				$this->run_sa_hub_members_csv();
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
@@ -767,6 +771,124 @@ class CC_Stats_Admin {
 				}
 
 			}
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the Salud America CSV when requested.
+	 *
+	 * @since    1.1.0
+	 */
+	public function run_sa_hub_members_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		if ( ! function_exists( 'sa_get_group_id' ) ) {
+			return;
+		}
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-sa-hub-members.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen( 'php://output', 'w' );
+
+		// This method only finds users who have agreed to be contacted.
+		// $user_ids = $wpdb->get_col( 'SELECT d.user_id FROM wp_bp_xprofile_data d WHERE d.field_id = 1382 AND d.value LIKE "%receive%"', 0 );
+		// $user_query = new BP_User_Query( array( 'user_ids' => $user_ids ) );
+
+		// This method finds all members in the group,
+		// whether they've agreed to receive mail or not.
+		$user_query = new BP_Group_Member_Query( array( 'group_id' => sa_get_group_id() ) );
+
+		// User Loop
+		if ( ! empty( $user_query->results ) ) {
+			// We want to exclude groups that aren't the base or SA group
+			$profile_groups = bp_xprofile_get_groups();
+			$profile_groups_ids = wp_list_pluck( $profile_groups, 'id' );
+			$desired_groups = array( 1, 5 );
+			$exclude_group_ids = array_diff( $profile_groups_ids, $desired_groups );
+			$i = 1;
+
+		    foreach ( $user_query->results as $user ) {
+		        $profile = bp_xprofile_get_groups( array(
+					'user_id'                => $user->ID,
+					'fetch_fields'           => true,
+					'fetch_field_data'       => true,
+					'fetch_visibility_level' => true,
+					'exclude_groups'         => $exclude_group_ids,
+					'exclude_fields'         => array( 470 ),
+					'update_meta_cache'      => true,
+				) );
+
+				// If this is the first result, we need to create the column header row.
+				if ( 1 == $i ) {
+					$row = array( 'user_email' );
+					foreach ( $profile as $profile_group_obj ) {
+						if ( strpos( $profile_group_obj->name, 'Salud' ) !== false ) {
+							$is_salud_pfg = true;
+						} else {
+							$is_salud_pfg = false;
+						}
+						foreach ( $profile_group_obj->fields as $field ) {
+							$towrite .= '"';
+							if ( $is_salud_pfg ) {
+								$row[] = 'SA: ' . $field->name;
+							} else {
+								$row[] = $field->name;
+							}
+						}
+					}
+					// Write the row.
+					fputcsv( $output, $row );
+				}
+
+				// Write the email address
+				$row = array( $user->user_email );
+				// Record the user's data
+				foreach ( $profile as $profile_group_obj ) {
+					foreach ( $profile_group_obj->fields as $field ) {
+						if ( 'public' == $field->visibility_level || 5 == $profile_group_obj->id ) {
+							// Account for various field situations
+							switch ( $field->id ) {
+								case '1312':
+									if ( ! empty( $field->data->value ) ) {
+										$row[] = 'yes';
+									} else {
+										$row[] = '';
+									}
+									break;
+								default:
+									$value = maybe_unserialize( $field->data->value );
+									if ( is_array( $value ) ) {
+										$value = implode( ', ', $value );
+									}
+
+									$row[] = $value;
+									break;
+							}
+						} elseif ( 1218 == $field->id ) {
+							// Affiliation field
+							$value = maybe_unserialize( $field->data->value );
+							if ( is_array( $value ) ) {
+								$value = implode( ', ', $value );
+							}
+
+							$row[] = $value;
+						} else {
+							// If this shouldn't be included, add an empty array member/placeholder.
+							$row[] = '';
+						}
+					}
+				}
+				// Write the row.
+				fputcsv( $output, $row );
+
+				$i++;
+		    }
 		}
 		fclose( $output );
 		exit();
