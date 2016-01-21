@@ -826,7 +826,7 @@ class CC_Stats_Admin {
 
 				// If this is the first result, we need to create the column header row.
 				if ( 1 == $i ) {
-					$row = array( 'user_email' );
+					$row = array( 'user_id', 'user_email' );
 					foreach ( $profile as $profile_group_obj ) {
 						if ( strpos( $profile_group_obj->name, 'Salud' ) !== false ) {
 							$is_salud_pfg = true;
@@ -846,8 +846,8 @@ class CC_Stats_Admin {
 					fputcsv( $output, $row );
 				}
 
-				// Write the email address
-				$row = array( $user->user_email );
+				// Write the user ID and email address
+				$row = array( $user->ID, $user->user_email );
 				// Record the user's data
 				foreach ( $profile as $profile_group_obj ) {
 					foreach ( $profile_group_obj->fields as $field ) {
