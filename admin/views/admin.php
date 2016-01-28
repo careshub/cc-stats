@@ -146,11 +146,23 @@ $current_user_id = get_current_user_id();
 					echo wp_nonce_url( add_query_arg(
 						array(
 							'page' => $plugin_slug,
-							'stat' => 'sa-hub-members'
+							'stat' => 'sa-hub-members-all'
 						),
 						admin_url( 'tools.php' )
 					), 'cc-stats-' . $current_user_id );
-				?>">Generate a Salud America hub member CSV.</a>
+				?>">Generate a Salud America hub member CSV &ndash; Complete List</a>
+			</li>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+						array(
+							'page' => $plugin_slug,
+							'stat' => 'sa-hub-members-email'
+						),
+						admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a Salud America hub member CSV &ndash; Email Contacts Only</a>
 			</li>
 		</ul>
 	</section>

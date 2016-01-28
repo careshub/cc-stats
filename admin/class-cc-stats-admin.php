@@ -206,7 +206,8 @@ class CC_Stats_Admin {
 			'forum-topic-subscriptions',
 			'forum-reply-relationships',
 			'forum-topic-favorites',
-			'sa-hub-members'
+			'sa-hub-members-all',
+			'sa-hub-members-email',
 			);
 
 		// Has anything been requested? Is this our screen?
@@ -250,8 +251,11 @@ class CC_Stats_Admin {
 			case 'forum-topic-favorites':
 				$this->run_forum_topic_favorites_csv();
 				break;
-			case 'sa-hub-members':
-				$this->run_sa_hub_members_csv();
+			case 'sa-hub-members-all':
+				$this->run_sa_hub_members_csv( 'all' );
+				break;
+			case 'sa-hub-members-email':
+				$this->run_sa_hub_members_csv( 'email' );
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
@@ -781,7 +785,7 @@ class CC_Stats_Admin {
 	 *
 	 * @since    1.1.0
 	 */
-	public function run_sa_hub_members_csv() {
+	public function run_sa_hub_members_csv( $include = 'email' ) {
 		global $wpdb;
 		$bp = buddypress();
 
@@ -791,18 +795,23 @@ class CC_Stats_Admin {
 
 		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
-		header('Content-Disposition: attachment; filename=cc-sa-hub-members.csv');
+		header('Content-Disposition: attachment; filename=cc-sa-hub-members-' . $include . '.csv');
 
 		// Create a file pointer connected to the output stream.
 		$output = fopen( 'php://output', 'w' );
+		//add BOM to fix UTF-8 in Excel
+		fputs( $output, $bom = ( chr(0xEF) . chr(0xBB) . chr(0xBF) ) );
 
-		// This method only finds users who have agreed to be contacted.
-		// $user_ids = $wpdb->get_col( 'SELECT d.user_id FROM wp_bp_xprofile_data d WHERE d.field_id = 1382 AND d.value LIKE "%receive%"', 0 );
-		// $user_query = new BP_User_Query( array( 'user_ids' => $user_ids ) );
-
-		// This method finds all members in the group,
-		// whether they've agreed to receive mail or not.
-		$user_query = new BP_Group_Member_Query( array( 'group_id' => sa_get_group_id() ) );
+		// Should we return all members or only those who have agreed to receive emails?
+		if ( 'all' == $include ) {
+			// This method finds all members in the group,
+			// whether they've agreed to receive mail or not.
+			$user_query = new BP_Group_Member_Query( array( 'group_id' => sa_get_group_id() ) );
+		} else {
+			// This method only finds users who have agreed to be contacted.
+			$user_ids = $wpdb->get_col( 'SELECT d.user_id FROM wp_bp_xprofile_data d WHERE d.field_id = 1382 AND d.value LIKE "%receive%"', 0 );
+			$user_query = new BP_User_Query( array( 'user_ids' => $user_ids ) );
+		}
 
 		// User Loop
 		if ( ! empty( $user_query->results ) ) {
@@ -864,7 +873,7 @@ class CC_Stats_Admin {
 								default:
 									$value = maybe_unserialize( $field->data->value );
 									if ( is_array( $value ) ) {
-										$value = implode( ', ', $value );
+										$value = implode( ', ', preg_replace('/\s+/', ' ', trim( $value ) ) );
 									}
 
 									$row[] = $value;
