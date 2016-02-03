@@ -79,6 +79,18 @@ $current_user_id = get_current_user_id();
 					), 'cc-stats-' . $current_user_id );
 				?>">Generate a &ldquo;replied-to-activity-update&rdquo; connections CSV.</a>
 			</li>
+			<li>
+				<a href="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+						array(
+							'page' => $plugin_slug,
+							'stat' => 'member-private-messages-connections'
+						),
+						admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>">Generate a private messaging connections CSV.</a>
+			</li>
 		</ul>
 	</section>
 

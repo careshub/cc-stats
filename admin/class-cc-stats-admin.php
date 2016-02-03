@@ -239,6 +239,9 @@ class CC_Stats_Admin {
 			case 'member-replied-to-activity-connections':
 				$this->run_member_replied_to_activity_connections_csv();
 				break;
+			case 'member-private-messages-connections':
+				$this->run_member_private_messages_connections_csv();
+				break;
 			case 'forum-subscriptions':
 				$this->run_forum_subscriptions_csv();
 				break;
@@ -537,6 +540,79 @@ class CC_Stats_Admin {
 					$reply->date_recorded
 				);
 				fputcsv( $output, $row );
+			}
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the replied-to-activity-update connections CSV when requested.
+	 *
+	 * @since    1.0.0
+	 */
+	public function run_member_private_messages_connections_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-member-private-messaging-connections.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen('php://output', 'w');
+
+		// Write a header row.
+		$row = array(
+			'thread_id',
+			'message_id',
+			'sender_id',
+			'sender_email',
+			'recipient_id',
+			'recipient_email',
+			'date_sent'
+			);
+		fputcsv( $output, $row );
+
+		$thread_ids = $wpdb->get_col( "SELECT DISTINCT thread_id FROM {$bp->messages->table_name_messages}" );
+
+		foreach ( $thread_ids as $thread_id ) {
+			$thread = new BP_Messages_Thread( $thread_id, 'ASC', array( 'update_meta_cache' => false ) );
+
+			foreach ( $thread->messages as $message ) {
+				// Get the sender email.
+				$sender_obj = get_userdata( $message->sender_id );
+
+				// If the sender object isn't a WP User, move on.
+				// Could happen if user is no longer a member.
+				if ( ! ( $sender_obj instanceof WP_User ) ) {
+					continue;
+				}
+
+				foreach ( $thread->recipients as $recipient ) {
+					if ( $message->sender_id == $recipient->user_id ) {
+						continue;
+					}
+					// Get the recipient's email.
+					$recipient_obj = get_userdata( $recipient->user_id );
+
+					// If the recipient object isn't a WP User, move on.
+					if ( ! ( $recipient_obj instanceof WP_User ) ) {
+						continue;
+					}
+
+					// Start the new row.
+					$row = array(
+						$thread_id,
+						$message->id,
+						$message->sender_id,
+						$sender_obj->user_email,
+						$recipient->user_id,
+						$recipient_obj->user_email,
+						$message->date_sent
+					);
+					fputcsv( $output, $row );
+				}
 			}
 		}
 		fclose( $output );
