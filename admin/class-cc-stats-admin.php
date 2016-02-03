@@ -67,6 +67,9 @@ class CC_Stats_Admin {
 		// Check for requests that stats be run.
 		add_action( 'admin_init', array( $this, 'maybe_run_stats' ) );
 
+		// Add error notices if needed.
+		add_action( 'admin_init', array( $this, 'maybe_add_admin_notice' ) );
+
 	}
 
 	/**
@@ -196,36 +199,23 @@ class CC_Stats_Admin {
 	public function maybe_run_stats() {
 		global $plugin_page;
 
-		// What is the complete list of actions we're checking for?
-		$actions = array(
-			'hub-csv',
-			'member-favorites',
-			'member-friend-connections',
-			'member-replied-to-activity-connections',
-			'forum-subscriptions',
-			'forum-topic-subscriptions',
-			'forum-reply-relationships',
-			'forum-topic-favorites',
-			'sa-hub-members-all',
-			'sa-hub-members-email',
-			);
-
 		// Has anything been requested? Is this our screen?
 		if ( ! isset( $_REQUEST['stat'] ) || $this->plugin_slug != $plugin_page ) {
 			return;
 		}
 
-		// Is it a request we can handle?
-		if ( ! in_array( $_REQUEST['stat'], $actions ) ) {
-			return;
-		}
-
 		// Is the nonce good?
 		if ( ! wp_verify_nonce( $_REQUEST['_wpnonce'], 'cc-stats-' . get_current_user_id() ) ) {
-			return;
+			wp_safe_redirect( add_query_arg(
+				array(
+					'page' => $this->plugin_slug,
+					'error' => 'bad-nonce'
+				),
+				admin_url( 'tools.php' ) ) );
+			exit;
 		}
 
-		// All's well, run the stat.
+		// Run the stat.
 		switch ( $_REQUEST['stat'] ) {
 			case 'hub-csv':
 				$this->run_stat_hub_csv();
@@ -262,6 +252,13 @@ class CC_Stats_Admin {
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
+				wp_safe_redirect( add_query_arg(
+					array(
+						'page' => $this->plugin_slug,
+						'error' =>'unknown-stat'
+					),
+					admin_url( 'tools.php' ) ) );
+				exit;
 				break;
 		}
 	}
@@ -549,7 +546,7 @@ class CC_Stats_Admin {
 	/**
 	 * Create the replied-to-activity-update connections CSV when requested.
 	 *
-	 * @since    1.0.0
+	 * @since    1.2.0
 	 */
 	public function run_member_private_messages_connections_csv() {
 		global $wpdb;
@@ -978,4 +975,43 @@ class CC_Stats_Admin {
 		fclose( $output );
 		exit();
 	}
+
+	/**
+	 * Check for errors in our stats page.
+	 *
+	 * @since    1.2.0
+	 */
+	public function maybe_add_admin_notice() {
+		global $plugin_page;
+
+		// Is this our screen?
+		if ( $this->plugin_slug != $plugin_page ) {
+			return;
+		}
+
+		if ( isset( $_REQUEST['error'] ) ) {
+			add_action( 'admin_notices', array( $this, 'format_admin_error_notice' ) );
+		}
+	}
+
+	/**
+	 * Format admin notices.
+	 *
+	 * @since    1.2.0
+	 */
+	public function format_admin_error_notice() {
+		if ( 'bad-nonce' == $_REQUEST['error'] ) {
+			$class = 'error';
+			$message = 'There&rsquo;s a problem with your security nonce. Please try again.';
+		} elseif ( 'unknown-stat' == $_REQUEST['error'] ){
+			$class = 'error';
+			$message = 'I couldn&rsquo;t handle your request. Please try again.';
+		} else {
+			return;
+		}
+		?>
+		<div class="<?php echo $class; ?>"><p><?php echo $message; ?></p></div>
+		<?php
+	}
+
 }
