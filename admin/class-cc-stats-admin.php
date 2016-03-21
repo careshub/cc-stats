@@ -876,18 +876,16 @@ class CC_Stats_Admin {
 		fputs( $output, $bom = ( chr(0xEF) . chr(0xBB) . chr(0xBF) ) );
 
 		// Should we return all members or only those who have agreed to receive emails?
-		if ( 'all' == $include ) {
-			// This method finds all members in the group,
-			// whether they've agreed to receive mail or not.
-			$user_query = new BP_Group_Member_Query( array( 'group_id' => sa_get_group_id() ) );
-		} else {
-			// This method only finds users who have agreed to be contacted.
-			$user_ids = $wpdb->get_col( 'SELECT d.user_id FROM wp_bp_xprofile_data d WHERE d.field_id = 1382 AND d.value LIKE "%receive%"', 0 );
-			$user_query = new BP_User_Query( array( 'user_ids' => $user_ids ) );
+		// First, we find all members in the group, whether they've agreed to receive mail or not.
+		$user_query = groups_get_group_members( array( 'group_id' => sa_get_group_id() ) );
+		if ( 'email' == $include ) {
+			// In this case, we only include group members who have also agreed to be contacted.
+			// Get the IDs of those who wish to be contacted.
+			$email_ids = $wpdb->get_col( "SELECT d.user_id FROM {$bp->profile->table_name_data} d WHERE d.field_id = 1382 AND d.value LIKE '%receive%'", 0 );
 		}
 
 		// User Loop
-		if ( ! empty( $user_query->results ) ) {
+		if ( ! empty( $user_query['members'] ) ) {
 			// We want to exclude groups that aren't the base or SA group
 			$profile_groups = bp_xprofile_get_groups();
 			$profile_groups_ids = wp_list_pluck( $profile_groups, 'id' );
@@ -895,7 +893,7 @@ class CC_Stats_Admin {
 			$exclude_group_ids = array_diff( $profile_groups_ids, $desired_groups );
 			$i = 1;
 
-		    foreach ( $user_query->results as $user ) {
+		    foreach ( $user_query['members'] as $user ) {
 		        $profile = bp_xprofile_get_groups( array(
 					'user_id'                => $user->ID,
 					'fetch_fields'           => true,
@@ -924,8 +922,15 @@ class CC_Stats_Admin {
 							}
 						}
 					}
+					$row[] = 'date_joined';
 					// Write the row.
 					fputcsv( $output, $row );
+				}
+
+				// If this is the email-only version, skip this record if this member doesn't want to be contacted.
+				if ( 'email' == $include && ! in_array( $user->ID, $email_ids) ) {
+					$i++;
+					continue;
 				}
 
 				// Write the user ID and email address
@@ -966,6 +971,7 @@ class CC_Stats_Admin {
 						}
 					}
 				}
+				$row[] = $user->date_modified;
 				// Write the row.
 				fputcsv( $output, $row );
 
