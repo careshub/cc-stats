@@ -993,10 +993,10 @@ class CC_Stats_Admin {
 								default:
 									$value = maybe_unserialize( $field->data->value );
 									if ( is_array( $value ) ) {
-										$value = implode( ', ', preg_replace('/\s+/', ' ', trim( $value ) ) );
+										$value = implode( ', ', preg_replace('/\s+|\r|\n/', ' ', trim( strip_tags( stripslashes( $value ) ) ) ) );
 									}
 
-									$row[] = $value;
+									$row[] = preg_replace( '/\s+|\r|\n/', ' ', trim( strip_tags( stripslashes( $value ) ) ) );
 									break;
 							}
 						} elseif ( 1218 == $field->id ) {
