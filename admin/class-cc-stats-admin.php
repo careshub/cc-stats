@@ -280,7 +280,7 @@ class CC_Stats_Admin {
 		$output = fopen('php://output', 'w');
 
 		// Write a header row.
-		$row = array( 'Hub ID', 'Name', 'Slug', 'Status', 'Date Created', 'Parent Hub ID', 'Total Members', 'Creator ID', 'Creator Email', 'Forum', 'BP Docs', 'CC Hub Home Page', 'CC Hub Pages', 'CC Hub Narratives', 'Custom Plugins' );
+		$row = array( 'Hub ID', 'Name', 'Slug', 'Status', 'Date Created', 'Last Activity', 'Parent Hub ID', 'Total Members', 'Creator ID', 'Creator Email', 'Forum', 'BP Docs', 'CC Hub Home Page', 'CC Hub Pages', 'CC Hub Narratives', 'Custom Plugins' );
 		fputcsv( $output, $row );
 
 		// Groups Loop
@@ -301,7 +301,7 @@ class CC_Stats_Admin {
 			while ( bp_groups() ) {
 				bp_the_group();
 				$group_id = bp_get_group_id();
-				$group_object = groups_get_group( array( 'group_id' => (int) $group_id ) );
+				$group_object = groups_get_group( array( 'group_id' => (int) $group_id, 'populate_extras' => true ) );
 
 				// Hub ID
 				$row = array( $group_id );
@@ -317,6 +317,9 @@ class CC_Stats_Admin {
 
 				// Date Created
 				$row[] = $group_object->date_created;
+
+				// Date of last activity
+				$row[] = $group_object->last_activity;
 
 				// Parent Hub ID
 				$row[] = $wpdb->get_var( $wpdb->prepare( "SELECT g.parent_id FROM {$bp->groups->table_name} g WHERE g.id = %d", $group_id ) );
@@ -445,7 +448,7 @@ class CC_Stats_Admin {
 		$output = fopen('php://output', 'w');
 
 		// Write a header row.
-		$row = array( 'initiator_user_id', 'initiator_username', 'initiator_email', 'friend_user_id', 'friend_username', 'friend_email', 'date_created' );
+		$row = array( 'initiator_user_id', 'initiator_username', 'initiator_email', 'friend_user_id', 'friend_username', 'friend_email', 'date_created', 'date_friend_registered', 'resulted_from_site_invite' );
 		fputcsv( $output, $row );
 
 		$friends = $wpdb->get_results( "SELECT
@@ -455,6 +458,7 @@ class CC_Stats_Admin {
 				 f.friend_user_id,
 				 u2.user_login as friend_username,
 				 u2.user_email as friend_email,
+				 u2.user_registered as friend_registered,
 				 f.date_created
 			FROM
 				 {$bp->friends->table_name} f
@@ -471,13 +475,51 @@ class CC_Stats_Admin {
 					$friend->friend_user_id,
 					$friend->friend_username,
 					$friend->friend_email,
-					$friend->date_created
+					$friend->date_created,
+					$friend->friend_registered,
+					$this->is_result_of_site_invite( $friend->initiator_user_id, $friend->friend_email ),
 				);
 				fputcsv( $output, $row );
 			}
 		}
 		fclose( $output );
 		exit();
+	}
+
+	/**
+	 * Was this friendship extended because of a site invite?
+	 *
+	 * @since    1.2.0
+	 */
+	public function is_result_of_site_invite( $inviter_id, $invitee_email ) {
+		$retval = 'No';
+		if ( ! class_exists( 'Invite_Anyone_Invitation' ) ) {
+			return $retval;
+		}
+
+		// The date_created is updated when the user accepts the invite so this is unreliable.
+		// Probably checking invite_anyone_get_invitations_by_invited_email is better,
+		// Note that "cleared" invites become status = draft.
+		// So invite_anyone_get_invitations_by_invited_email() won't work because it finds only published posts.
+
+		// Catch a couple of odd cases.
+		$invitee_email = str_replace( ' ', '+', $invitee_email );
+		$invitee_email = str_replace( '+', '.PLUSSIGN.', $invitee_email );
+
+		$args = array(
+			'inviter_id' 		=> $inviter_id,
+			'invitee_email'		=> $invitee_email,
+			'status'		=> array( 'draft', 'publish' ), // 'publish' are visible on Sent Invites, 'draft' when cleared
+			'posts_per_page'	=> -1,
+		);
+		$invite = new Invite_Anyone_Invitation;
+		$site_invites = $invite->get( $args );
+		// If a connection exists, this will be not empty.
+		if ( ! empty( $site_invites->posts ) ) {
+			$retval = "Yes";
+		}
+
+		return $retval;
 	}
 
 	/**
