@@ -12,6 +12,9 @@
  * @copyright 2014 Your Name or Company Name
  */
 
+global $wpdb;
+$bp = buddypress();
+
 $cc_stats = CC_Stats::get_instance();
 $plugin_slug = $cc_stats->get_plugin_slug();
 $current_user_id = get_current_user_id();
@@ -36,6 +39,39 @@ $current_user_id = get_current_user_id();
 						admin_url( 'tools.php' )
 					), 'cc-stats-' . $current_user_id );
 				?>">Generate an overview CSV.</a>
+			</li>
+			<li>
+				<form name="single-hub-member-list" id="single-hub-member-list" class="standard-form" action="<?php
+					// URL needs to have the stat we're requesting and be nonced.
+					echo wp_nonce_url( add_query_arg(
+						array(
+							'page' => $plugin_slug,
+							'stat' => 'single-hub-member-list'
+						),
+						admin_url( 'tools.php' )
+					), 'cc-stats-' . $current_user_id );
+				?>" method="post">
+					<label for="group_id">Create a member list CSV for a single hub.</label><br />
+					<?php
+						$groups = $wpdb->get_results( "SELECT id, name	FROM {$bp->groups->table_name} ORDER BY	name ASC" );
+						if ( $groups ) {
+							?>
+							<select name="group_id" id="hub-member-list-select" class="chosen-select" data-placeholder="Choose a hub..." style="width:75%;">
+							<!-- Include an empty option for chosen.js support-->
+							<option></option>
+							<?php
+							foreach ( $groups as $group ) {
+								?>
+								<option value="<?php echo $group->id; ?>"><?php echo $group->name; ?></option>
+								<?php
+							}
+							?>
+							</select>
+							<?php
+						}
+					?>
+					<input type="submit" value="Create CSV">
+				</form>
 			</li>
 		</ul>
 	</section>
@@ -180,3 +216,6 @@ $current_user_id = get_current_user_id();
 	</section>
 
 </div>
+<script type="text/javascript">
+	jQuery( '.chosen-select' ).chosen({});
+</script>

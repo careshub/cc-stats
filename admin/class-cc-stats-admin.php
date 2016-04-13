@@ -54,8 +54,8 @@ class CC_Stats_Admin {
 		$this->plugin_slug = $plugin->get_plugin_slug();
 
 		// Load admin style sheet and JavaScript.
-		// add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
-		// add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_styles' ) );
+		add_action( 'admin_enqueue_scripts', array( $this, 'enqueue_admin_scripts' ) );
 
 		// Add the options page and menu item.
 		add_action( 'admin_menu', array( $this, 'add_plugin_admin_menu' ) );
@@ -117,7 +117,7 @@ class CC_Stats_Admin {
 
 		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
-			wp_enqueue_style( $this->plugin_slug .'-admin-styles', plugins_url( 'assets/css/admin.css', __FILE__ ), array(), Plugin_Name::VERSION );
+			wp_enqueue_style( 'chosen-js-styles', 'https://cdnjs.cloudflare.com/ajax/libs/chosen/1.4.2/chosen.min.css', array(), '1.4.2' );
 		}
 
 	}
@@ -141,7 +141,7 @@ class CC_Stats_Admin {
 
 		$screen = get_current_screen();
 		if ( $this->plugin_screen_hook_suffix == $screen->id ) {
-			wp_enqueue_script( $this->plugin_slug . '-admin-script', plugins_url( 'assets/js/admin.js', __FILE__ ), array( 'jquery' ), Plugin_Name::VERSION );
+			wp_enqueue_script( 'chosen-js-script', 'https://cdnjs.cloudflare.com/ajax/libs/chosen/1.4.2/chosen.jquery.min.js', array( 'jquery' ), '1.4.2' );
 		}
 
 	}
@@ -249,6 +249,9 @@ class CC_Stats_Admin {
 				break;
 			case 'sa-hub-members-email':
 				$this->run_sa_hub_members_csv( 'email' );
+				break;
+			case 'single-hub-member-list':
+				$this->run_single_hub_member_list_csv();
 				break;
 			default:
 				// Do nothing if we don't know what we're doing.
@@ -1018,6 +1021,49 @@ class CC_Stats_Admin {
 				fputcsv( $output, $row );
 
 				$i++;
+		    }
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the single hub member list CSV when requested.
+	 *
+	 * @since    1.3.0
+	 */
+	public function run_single_hub_member_list_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		// Which group?
+		$group_id = isset( $_POST['group_id'] ) ? (int) $_POST['group_id'] : 0;
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-hub-members-in-hub-id-' . $group_id . '.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen( 'php://output', 'w' );
+		//add BOM to fix UTF-8 in Excel
+		fputs( $output, $bom = ( chr(0xEF) . chr(0xBB) . chr(0xBF) ) );
+
+		// First, we find all members in the group.
+		$user_query = groups_get_group_members( array( 'group_id' => $group_id, 'exclude_admins_mods' => false ) );
+
+		// Create the column header row.
+		$row = array( 'user_id', 'user_email', 'user_login', 'display_name', 'group_role', 'group_membership_modified', 'user_registered', 'last_activity' );
+		// Write the row.
+		fputcsv( $output, $row );
+
+		// User Loop
+		if ( ! empty( $user_query['members'] ) ) {
+		    foreach ( $user_query['members'] as $user ) {
+				// Write the user info.
+				$row = array( $user->ID, $user->user_email, $user->user_login, $user->display_name, $user->user_title, $user->date_modified, $user->user_registered, $user->last_activity );
+
+				// Write the row.
+				fputcsv( $output, $row );
 		    }
 		}
 		fclose( $output );
