@@ -253,6 +253,9 @@ class CC_Stats_Admin {
 			case 'single-hub-member-list':
 				$this->run_single_hub_member_list_csv();
 				break;
+			case 'chi-hub-members-all':
+				$this->run_chi_hub_member_list_csv();
+				break;
 			default:
 				// Do nothing if we don't know what we're doing.
 				wp_safe_redirect( add_query_arg(
@@ -1064,6 +1067,132 @@ class CC_Stats_Admin {
 
 				// Write the row.
 				fputcsv( $output, $row );
+		    }
+		}
+		fclose( $output );
+		exit();
+	}
+
+	/**
+	 * Create the CHI CSV when requested.
+	 *
+	 * @since    1.4.0
+	 */
+	public function run_chi_hub_member_list_csv() {
+		global $wpdb;
+		$bp = buddypress();
+
+		if ( ! function_exists( 'cdc_get_target_group_id' ) ) {
+			return;
+		}
+		// @TODO: This could be generalized and added to the general Hub Member CSV, I think.
+		$chi_hub_id = cdc_get_target_group_id();
+
+		// Output headers so that the file is downloaded rather than displayed.
+		header('Content-Type: text/csv; charset=utf-8');
+		header('Content-Disposition: attachment; filename=cc-chi-hub-members.csv');
+
+		// Create a file pointer connected to the output stream.
+		$output = fopen( 'php://output', 'w' );
+		//add BOM to fix UTF-8 in Excel
+		fputs( $output, $bom = ( chr(0xEF) . chr(0xBB) . chr(0xBF) ) );
+
+		// Find all members in the group, whether they've agreed to receive mail or not.
+		$user_query = groups_get_group_members( array( 'group_id' => $chi_hub_id ) );
+
+		// User Loop
+		if ( ! empty( $user_query['members'] ) ) {
+			// We want to exclude groups that aren't the base or SA group
+			$profile_groups = bp_xprofile_get_groups();
+			$profile_groups_ids = wp_list_pluck( $profile_groups, 'id' );
+
+			$desired_groups = array();
+			$hub_pfg_ids = 0;
+			if ( function_exists( 'grpf_get_associated_field_groups' ) ) {
+				$hub_pfg_ids = grpf_get_associated_field_groups( $chi_hub_id );
+				$desired_groups = $hub_pfg_ids;
+			}
+			$desired_groups[] = 1 ;
+			$exclude_group_ids = array_diff( $profile_groups_ids, $desired_groups );
+			$i = 1;
+
+		    foreach ( $user_query['members'] as $user ) {
+		        $profile = bp_xprofile_get_groups( array(
+					'user_id'                => $user->ID,
+					'fetch_fields'           => true,
+					'fetch_field_data'       => true,
+					'fetch_visibility_level' => true,
+					'exclude_groups'         => $exclude_group_ids,
+					'exclude_fields'         => array( 470 ),
+					'update_meta_cache'      => true,
+				) );
+
+				// If this is the first result, we need to create the column header row.
+				if ( 1 == $i ) {
+					$row = array( 'user_id', 'user_email' );
+					foreach ( $profile as $profile_group_obj ) {
+						if ( $profile_group_obj->id != 1 ) {
+							$is_hub_pfg = true;
+						} else {
+							$is_hub_pfg = false;
+						}
+						foreach ( $profile_group_obj->fields as $field ) {
+							$towrite .= '"';
+							if ( $is_hub_pfg ) {
+								$row[] = 'CHI: ' . $field->name;
+							} else {
+								$row[] = $field->name;
+							}
+						}
+					}
+					$row[] = 'date_joined';
+					// Write the row.
+					fputcsv( $output, $row );
+				}
+
+				// Write the user ID and email address
+				$row = array( $user->ID, $user->user_email );
+				// Record the user's data
+				foreach ( $profile as $profile_group_obj ) {
+					foreach ( $profile_group_obj->fields as $field ) {
+						if ( 'public' == $field->visibility_level || in_array( $profile_group_obj->id, $hub_pfg_ids ) ) {
+							// Account for various field situations
+							switch ( $field->id ) {
+								case '1312':
+									if ( ! empty( $field->data->value ) ) {
+										$row[] = 'yes';
+									} else {
+										$row[] = '';
+									}
+									break;
+								default:
+									$value = maybe_unserialize( $field->data->value );
+									if ( is_array( $value ) ) {
+										$value = implode( ', ', preg_replace('/\s+|\r|\n/', ' ', trim( strip_tags( stripslashes( $value ) ) ) ) );
+									}
+
+									$row[] = preg_replace( '/\s+|\r|\n/', ' ', trim( strip_tags( stripslashes( $value ) ) ) );
+									break;
+							}
+						} elseif ( 1218 == $field->id ) {
+							// Affiliation field
+							$value = maybe_unserialize( $field->data->value );
+							if ( is_array( $value ) ) {
+								$value = implode( ', ', $value );
+							}
+
+							$row[] = $value;
+						} else {
+							// If this shouldn't be included, add an empty array member/placeholder.
+							$row[] = '';
+						}
+					}
+				}
+				$row[] = $user->date_modified;
+				// Write the row.
+				fputcsv( $output, $row );
+
+				$i++;
 		    }
 		}
 		fclose( $output );
