@@ -186,6 +186,15 @@ $current_user_id = get_current_user_id();
 	</section>
 
 	<section>
+		<h3>Private Message Stats</h3>
+		<ul>
+			<li>
+				Private message read percentage: <?php echo $cc_stats->private_message_read_ratio(); ?>%
+			</li>
+		</ul>
+	</section>
+
+	<section>
 		<h3>Salud America Stats</h3>
 		<ul>
 			<li>

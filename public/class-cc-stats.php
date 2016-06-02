@@ -236,4 +236,25 @@ class CC_Stats {
 		load_plugin_textdomain( $domain, FALSE, basename( plugin_dir_path( dirname( __FILE__ ) ) ) . '/languages/' );
 
 	}
+
+	/**
+	 * Calculate the private message read ratio.
+	 *
+	 * @since    1.5.0
+	 */
+	public function private_message_read_ratio() {
+		global $wpdb;
+		$bp = buddypress();
+
+		$total_messages = $wpdb->get_var( "SELECT COUNT(*) FROM {$bp->messages->table_name_messages}" );
+
+		$ratio = 0;
+		if ( $total_messages ) {
+			$total_unread = $wpdb->get_var( "SELECT SUM(unread_count) FROM {$bp->messages->table_name_recipients}" );
+
+			$ratio = 100 * ( $total_messages - $total_unread ) / $total_messages;
+			$ratio = round( $ratio, 2 );
+		}
+		return $ratio;
+	}
 }
