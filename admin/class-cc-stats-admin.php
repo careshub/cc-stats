@@ -1123,7 +1123,6 @@ class CC_Stats_Admin {
 					'fetch_field_data'       => true,
 					'fetch_visibility_level' => true,
 					'exclude_groups'         => $exclude_group_ids,
-					'exclude_fields'         => array( 470 ),
 					'update_meta_cache'      => true,
 				) );
 
@@ -1155,7 +1154,8 @@ class CC_Stats_Admin {
 				// Record the user's data
 				foreach ( $profile as $profile_group_obj ) {
 					foreach ( $profile_group_obj->fields as $field ) {
-						if ( 'public' == $field->visibility_level || in_array( $profile_group_obj->id, $hub_pfg_ids ) ) {
+						// Allow "public" data, hub-specific data and ZIP code fields.
+						if ( 'public' == $field->visibility_level || in_array( $profile_group_obj->id, $hub_pfg_ids ) || 470 == $field->id ) {
 							// Account for various field situations
 							switch ( $field->id ) {
 								case '1312':
