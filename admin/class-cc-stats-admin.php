@@ -789,7 +789,7 @@ class CC_Stats_Admin {
 		$output = fopen('php://output', 'w');
 
 		// Write a header row.
-		$row = array( 'user_id','user_email', 'in_reply_to_user_id', 'in_reply_to_user_email', 'in_topic_by_user_id', 'in_topic_by_user_email', 'in_forum_by_user_id', 'in_forum_by_user_email', 'post_date' );
+		$row = array( 'user_id','user_email', 'in_reply_to_user_id', 'in_reply_to_user_email', 'in_topic_by_user_id', 'in_topic_by_user_email', 'in_forum_by_user_id', 'in_forum_by_user_email', 'in_forum_id', 'post_date' );
 		fputcsv( $output, $row );
 
 		$replies = new WP_QUERY( array(
@@ -832,7 +832,9 @@ class CC_Stats_Admin {
 					$forum_auth = get_userdata( $forum_auth_id );
 					$row[] = $forum_auth_id;
 					$row[] = $forum_auth->user_email;
+					$row[] = $meta['_bbp_forum_id'][0];
 				} else {
+					$row[] = '';
 					$row[] = '';
 					$row[] = '';
 				}
