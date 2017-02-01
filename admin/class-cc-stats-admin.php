@@ -1044,6 +1044,24 @@ class CC_Stats_Admin {
 		// Which group?
 		$group_id = isset( $_POST['group_id'] ) ? (int) $_POST['group_id'] : 0;
 
+		// Are we getting extra profile field data for the members?
+		$fetch_profile_data = ! empty( $_POST['fetch_profile_data'] );
+
+		if ( $fetch_profile_data ) {
+			// We want to exclude PFGs that aren't the base or hub-related
+			$profile_groups = bp_xprofile_get_groups();
+			$profile_groups_ids = wp_list_pluck( $profile_groups, 'id' );
+
+			$desired_groups = array();
+			$hub_pfg_ids = 0;
+			if ( function_exists( 'grpf_get_associated_field_groups' ) ) {
+				$hub_pfg_ids = grpf_get_associated_field_groups( $group_id );
+				$desired_groups = $hub_pfg_ids;
+			}
+			$desired_groups[] = 1 ;
+			$exclude_pfg_ids = array_diff( $profile_groups_ids, $desired_groups );
+		}
+
 		// Output headers so that the file is downloaded rather than displayed.
 		header('Content-Type: text/csv; charset=utf-8');
 		header('Content-Disposition: attachment; filename=cc-hub-members-in-hub-id-' . $group_id . '.csv');
@@ -1056,19 +1074,63 @@ class CC_Stats_Admin {
 		// First, we find all members in the group.
 		$user_query = groups_get_group_members( array( 'group_id' => $group_id, 'exclude_admins_mods' => false ) );
 
-		// Create the column header row.
-		$row = array( 'user_id', 'user_email', 'user_login', 'display_name', 'group_role', 'group_membership_modified', 'user_registered', 'last_activity' );
-		// Write the row.
-		fputcsv( $output, $row );
-
 		// User Loop
 		if ( ! empty( $user_query['members'] ) ) {
+			$i = 1;
 		    foreach ( $user_query['members'] as $user ) {
+		    	if ( $fetch_profile_data ) {
+			        $profile = bp_xprofile_get_groups( array(
+						'user_id'                => $user->ID,
+						'fetch_fields'           => true,
+						'fetch_field_data'       => true,
+						'fetch_visibility_level' => true,
+						'exclude_groups'         => $exclude_pfg_ids,
+						'update_meta_cache'      => true,
+					) );
+		    	}
+
+		    	if ( 1 == $i ) {
+	    			// Create the basic column header row.
+					$row = array( 'user_id', 'user_email', 'user_login', 'display_name', 'group_role', 'group_membership_modified', 'user_registered', 'last_activity' );
+
+					// Add the extra columns for profile data.
+					if ( $fetch_profile_data ) {
+						foreach ( $profile as $profile_group_obj ) {
+							foreach ( $profile_group_obj->fields as $field ) {
+								$row[] = $field->name;
+							}
+						}
+					}
+					// Write the header row.
+					fputcsv( $output, $row );
+				}
+
 				// Write the user info.
 				$row = array( $user->ID, $user->user_email, $user->user_login, $user->display_name, $user->user_title, $user->date_modified, $user->user_registered, $user->last_activity );
 
+				if ( $fetch_profile_data ) {
+					// Record the user's data
+					foreach ( $profile as $profile_group_obj ) {
+						foreach ( $profile_group_obj->fields as $field ) {
+							// Allow "public" data, hub-specific data and ZIP code fields.
+							if ( 'public' == $field->visibility_level || in_array( $profile_group_obj->id, $hub_pfg_ids ) || 470 == $field->id ) {
+								$value = maybe_unserialize( $field->data->value );
+								if ( is_array( $value ) ) {
+									$value = implode( ', ', preg_replace('/\s+|\r|\n/', ' ', trim( strip_tags( stripslashes( $value ) ) ) ) );
+								}
+
+								$row[] = preg_replace( '/\s+|\r|\n/', ' ', trim( strip_tags( stripslashes( $value ) ) ) );
+							} else {
+								// If this shouldn't be included, add an empty array member/placeholder.
+								$row[] = '';
+							}
+						}
+					}
+				}
+
 				// Write the row.
 				fputcsv( $output, $row );
+				$i++;
 		    }
 		}
 		fclose( $output );
@@ -1115,7 +1177,7 @@ class CC_Stats_Admin {
 				$desired_groups = $hub_pfg_ids;
 			}
 			$desired_groups[] = 1 ;
-			$exclude_group_ids = array_diff( $profile_groups_ids, $desired_groups );
+			$exclude_pfg_ids = array_diff( $profile_groups_ids, $desired_groups );
 			$i = 1;
 
 		    foreach ( $user_query['members'] as $user ) {
@@ -1124,7 +1186,7 @@ class CC_Stats_Admin {
 					'fetch_fields'           => true,
 					'fetch_field_data'       => true,
 					'fetch_visibility_level' => true,
-					'exclude_groups'         => $exclude_group_ids,
+					'exclude_groups'         => $exclude_pfg_ids,
 					'update_meta_cache'      => true,
 				) );
 

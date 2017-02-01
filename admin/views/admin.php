@@ -51,7 +51,7 @@ $current_user_id = get_current_user_id();
 						admin_url( 'tools.php' )
 					), 'cc-stats-' . $current_user_id );
 				?>" method="post">
-					<label for="group_id">Create a member list CSV for a single hub.</label><br />
+					<label for="group_id"><strong>Create a member list CSV for a single hub.</strong></label><br />
 					<?php
 						$groups = $wpdb->get_results( "SELECT id, name	FROM {$bp->groups->table_name} ORDER BY	name ASC" );
 						if ( $groups ) {
@@ -66,7 +66,8 @@ $current_user_id = get_current_user_id();
 								<?php
 							}
 							?>
-							</select>
+							</select><br />
+							<input type="checkbox" id="fetch_profile_data" name="fetch_profile_data"> <label for="fetch_profile_data">Include hub-related profile field data.</label>
 							<?php
 						}
 					?>
